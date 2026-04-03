@@ -3,17 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const ThemeToggle = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState('sunset')
+  const [currentTheme, setCurrentTheme] = useState('fresh') // Changed to 'fresh' as default
 
   const themes = [
-    { 
-      id: 'sunset', 
-      name: 'Sunset', 
-      icon: '🌅', 
-      primary: '#ea580c',
-      primaryDark: '#c2410c',
-      accent: '#f97316'
-    },
     { 
       id: 'fresh', 
       name: 'Fresh Green', 
@@ -21,6 +13,14 @@ const ThemeToggle = () => {
       primary: '#2e7d32',
       primaryDark: '#1b5e20',
       accent: '#ff9800'
+    },
+    { 
+      id: 'sunset', 
+      name: 'Sunset', 
+      icon: '🌅', 
+      primary: '#ea580c',
+      primaryDark: '#c2410c',
+      accent: '#f97316'
     },
     { 
       id: 'ocean', 
@@ -49,8 +49,8 @@ const ThemeToggle = () => {
   ]
 
   useEffect(() => {
-    // Load saved theme from localStorage
-    const savedTheme = localStorage.getItem('theme') || 'sunset'
+    // Load saved theme from localStorage or default to 'fresh'
+    const savedTheme = localStorage.getItem('theme') || 'fresh'
     setCurrentTheme(savedTheme)
     applyTheme(savedTheme)
   }, [])
@@ -64,16 +64,22 @@ const ThemeToggle = () => {
     document.documentElement.style.setProperty('--primary-dark', theme.primaryDark)
     document.documentElement.style.setProperty('--accent', theme.accent)
     
+    // Update sidebar gradient if it exists
+    const sidebar = document.querySelector('.sidebar-gradient')
+    if (sidebar) {
+      sidebar.style.background = `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+    }
+    
     // Also update gradient background for body
     const gradients = {
-      sunset: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
       fresh: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
+      sunset: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
       ocean: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
       royal: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
       candy: 'linear-gradient(135deg, #db2777 0%, #be185d 100%)'
     }
     
-    document.body.style.background = gradients[themeId] || gradients.sunset
+    document.body.style.background = gradients[themeId] || gradients.fresh
     
     // Add class to body for theme-specific styles
     document.body.className = document.body.className.replace(/theme-\w+/, '').trim()
@@ -87,7 +93,7 @@ const ThemeToggle = () => {
     applyTheme(themeId)
     setIsOpen(false)
     
-    // Optional: Show success message
+    // Show success message
     const theme = themes.find(t => t.id === themeId)
     if (window.toast) {
       window.toast.success(`${theme?.name} theme applied! 🎨`)
@@ -97,7 +103,7 @@ const ThemeToggle = () => {
   const currentThemeData = themes.find(t => t.id === currentTheme)
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-4 left-4 z-40"> {/* Changed to bottom-left to not block content */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -105,7 +111,7 @@ const ThemeToggle = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-16 right-0 mb-2 bg-white rounded-2xl shadow-2xl p-2 border border-gray-200 min-w-[160px]"
+            className="absolute bottom-12 left-0 mb-2 bg-white rounded-2xl shadow-2xl p-2 border border-gray-200 min-w-[160px]"
           >
             {themes.map((theme) => (
               <button
@@ -141,12 +147,12 @@ const ThemeToggle = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-12 h-12 rounded-full text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+        className="w-10 h-10 rounded-full text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
         style={{
           background: `linear-gradient(135deg, ${currentThemeData?.primary} 0%, ${currentThemeData?.primaryDark} 100%)`
         }}
       >
-        <span className="text-xl">🎨</span>
+        <span className="text-lg">🎨</span>
       </motion.button>
     </div>
   )

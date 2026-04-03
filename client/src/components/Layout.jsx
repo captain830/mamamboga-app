@@ -6,6 +6,7 @@ import Header from './Header'
 import MobileNav from './MobileNav'
 import { FiMenu } from 'react-icons/fi'
 import LanguageSwitcher from './LanguageSwitcher'
+import ThemeToggle from './ThemeToggle'
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -37,7 +38,6 @@ const Layout = () => {
     setSidebarOpen(false)
   }
 
-  // Prevent body scroll when sidebar is open
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden'
@@ -85,7 +85,6 @@ const Layout = () => {
             <div className="flex items-center space-x-2">
               <span className="text-lg font-bold text-green-600">Mama Mboga</span>
             </div>
-            {/* Language Switcher - Mobile */}
             <LanguageSwitcher />
           </div>
         </div>
@@ -95,24 +94,24 @@ const Layout = () => {
           <Header user={user} />
         </div>
 
-        {/* Add LanguageSwitcher to Desktop Top Right */}
-        <div className="hidden lg:block fixed top-4 right-4 z-50">
-          <LanguageSwitcher />
-        </div>
-
-        {/* Main Content - Scrollable with bottom padding for mobile nav */}
+        {/* Main Content - Scrollable */}
         <main className="flex-1 overflow-y-auto">
           <div className={`p-4 ${isMobile ? 'pb-24' : 'pb-4'}`}>
             <Outlet />
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation - Only show on mobile when sidebar is closed */}
+        {/* Mobile Bottom Navigation */}
         {isMobile && !sidebarOpen && (
           <div className="flex-shrink-0 lg:hidden">
             <MobileNav />
           </div>
         )}
+      </div>
+
+      {/* ThemeToggle - Now in bottom-left corner, not blocking content */}
+      <div className="fixed bottom-4 left-4 z-40">
+        <ThemeToggle />
       </div>
     </div>
   )

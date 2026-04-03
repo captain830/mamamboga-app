@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import toast from 'react-hot-toast'; // Changed from react-toastify to match your app
+import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Reply, CheckCircle, Clock, XCircle, Send, Edit2, Trash2 } from 'lucide-react';
 
 const AdminFeedback = () => {
     const [feedback, setFeedback] = useState([]);
@@ -16,12 +18,10 @@ const AdminFeedback = () => {
         resolved: 0
     });
 
-    // Fetch feedback when filter changes
     useEffect(() => {
         fetchFeedback();
     }, [filter]);
 
-    // Fetch stats when component mounts
     useEffect(() => {
         fetchStats();
     }, []);
@@ -33,7 +33,6 @@ const AdminFeedback = () => {
             const response = await api.get('/feedback/all', { params });
             setFeedback(response.data.feedback || []);
             
-            // Update stats based on fetched feedback
             const feedbackData = response.data.feedback || [];
             setStats({
                 total: feedbackData.length,
@@ -58,7 +57,6 @@ const AdminFeedback = () => {
             }
         } catch (error) {
             console.error('Failed to fetch stats:', error);
-            // Don't show toast error here as it's not critical
         }
     };
 
@@ -70,24 +68,58 @@ const AdminFeedback = () => {
         }
 
         try {
-            await api.put(`/feedback/${selected.id}/reply`, { admin_reply: replyText });
+            const response = await api.put(`/feedback/${selected.id}/reply`, { admin_reply: replyText });
+            
+            // Update the feedback in the local state immediately
+            setFeedback(prevFeedback => 
+                prevFeedback.map(item => 
+                    item.id === selected.id 
+                        ? { ...item, admin_reply: replyText, status: 'reviewed', replied_at: new Date().toISOString() }
+                        : item
+                )
+            );
+            
+            // Also update stats
+            setStats(prev => ({
+                ...prev,
+                pending: prev.pending - 1,
+                reviewed: prev.reviewed + 1
+            }));
+            
             toast.success('Reply sent successfully!');
             setShowReplyModal(false);
             setReplyText('');
-            fetchFeedback(); // Refresh the list
-            fetchStats(); // Refresh stats
+            
+            // Refresh from server in background
+            fetchFeedback();
         } catch (error) {
             console.error('Reply error:', error);
             toast.error('Failed to send reply');
         }
     };
 
-    const updateStatus = async (id, status) => {
+    const updateStatus = async (id, newStatus) => {
         try {
-            await api.put(`/feedback/${id}/status`, { status });
-            toast.success(`Status updated to ${status}`);
-            fetchFeedback(); // Refresh the list
-            fetchStats(); // Refresh stats
+            await api.put(`/feedback/${id}/status`, { status: newStatus });
+            
+            // Update local state immediately
+            setFeedback(prevFeedback => 
+                prevFeedback.map(item => 
+                    item.id === id ? { ...item, status: newStatus } : item
+                )
+            );
+            
+            // Update stats
+            const oldItem = feedback.find(f => f.id === id);
+            if (oldItem) {
+                setStats(prev => ({
+                    ...prev,
+                    [oldItem.status]: prev[oldItem.status] - 1,
+                    [newStatus]: prev[newStatus] + 1
+                }));
+            }
+            
+            toast.success(`Status updated to ${newStatus}`);
         } catch (error) {
             console.error('Status update error:', error);
             toast.error('Failed to update status');
@@ -98,9 +130,21 @@ const AdminFeedback = () => {
         if (window.confirm('Are you sure you want to delete this feedback?')) {
             try {
                 await api.delete(`/feedback/${id}`);
+                
+                // Remove from local state immediately
+                const deletedItem = feedback.find(f => f.id === id);
+                setFeedback(prevFeedback => prevFeedback.filter(item => item.id !== id));
+                
+                // Update stats
+                if (deletedItem) {
+                    setStats(prev => ({
+                        ...prev,
+                        total: prev.total - 1,
+                        [deletedItem.status]: prev[deletedItem.status] - 1
+                    }));
+                }
+                
                 toast.success('Feedback deleted successfully');
-                fetchFeedback(); // Refresh the list
-                fetchStats(); // Refresh stats
             } catch (error) {
                 console.error('Delete error:', error);
                 toast.error('Failed to delete feedback');
@@ -186,7 +230,12 @@ const AdminFeedback = () => {
             ) : (
                 <div className="space-y-4">
                     {feedback.map(item => (
-                        <div key={item.id} className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition">
+                        <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition"
+                        >
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
@@ -214,6 +263,7 @@ const AdminFeedback = () => {
                             <h3 className="font-semibold text-gray-800 mb-2">{item.subject}</h3>
                             <p className="text-gray-600 mb-4">{item.message}</p>
                             
+                            {/* Admin Reply - Now shows immediately after reply */}
                             {item.admin_reply && (
                                 <div className="bg-green-50 rounded-lg p-3 mb-4 border-l-4 border-green-500">
                                     <p className="text-xs text-green-700 font-medium mb-1">📨 Admin Response:</p>
@@ -233,9 +283,10 @@ const AdminFeedback = () => {
                                         setReplyText(item.admin_reply || '');
                                         setShowReplyModal(true);
                                     }}
-                                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+                                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition flex items-center gap-1"
                                 >
-                                    💬 {item.admin_reply ? 'Edit Reply' : 'Reply'}
+                                    <Reply className="w-3 h-3" />
+                                    {item.admin_reply ? 'Edit Reply' : 'Reply'}
                                 </button>
                                 <select
                                     value={item.status}
@@ -248,12 +299,13 @@ const AdminFeedback = () => {
                                 </select>
                                 <button
                                     onClick={() => deleteFeedback(item.id)}
-                                    className="px-4 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
+                                    className="px-4 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition flex items-center gap-1"
                                 >
-                                    🗑️ Delete
+                                    <Trash2 className="w-3 h-3" />
+                                    Delete
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
             )}
@@ -261,7 +313,11 @@ const AdminFeedback = () => {
             {/* Reply Modal */}
             {showReplyModal && selected && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl"
+                    >
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold">Reply to Customer</h2>
                             <button 
@@ -298,12 +354,13 @@ const AdminFeedback = () => {
                             </button>
                             <button 
                                 onClick={handleReply} 
-                                className="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                                className="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
                             >
+                                <Send className="w-4 h-4" />
                                 Send Reply
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             )}
         </div>
