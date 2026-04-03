@@ -108,11 +108,6 @@ const Layout = () => {
           </div>
         )}
       </div>
-
-      {/* ThemeToggle - Now in bottom-left corner, not blocking content */}
-      <div className="fixed bottom-4 left-4 z-40">
-        <ThemeToggle />
-      </div>
     </div>
   )
 }
