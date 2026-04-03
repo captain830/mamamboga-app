@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, CheckCircle, Clock, XCircle, Send, Edit2, Trash2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const AdminFeedback = () => {
     const [feedback, setFeedback] = useState([]);
@@ -68,9 +67,9 @@ const AdminFeedback = () => {
         }
 
         try {
-            const response = await api.put(`/feedback/${selected.id}/reply`, { admin_reply: replyText });
+            await api.put(`/feedback/${selected.id}/reply`, { admin_reply: replyText });
             
-            // Update the feedback in the local state immediately
+            // Update local state immediately
             setFeedback(prevFeedback => 
                 prevFeedback.map(item => 
                     item.id === selected.id 
@@ -79,18 +78,9 @@ const AdminFeedback = () => {
                 )
             );
             
-            // Also update stats
-            setStats(prev => ({
-                ...prev,
-                pending: prev.pending - 1,
-                reviewed: prev.reviewed + 1
-            }));
-            
             toast.success('Reply sent successfully!');
             setShowReplyModal(false);
             setReplyText('');
-            
-            // Refresh from server in background
             fetchFeedback();
         } catch (error) {
             console.error('Reply error:', error);
@@ -101,27 +91,14 @@ const AdminFeedback = () => {
     const updateStatus = async (id, newStatus) => {
         try {
             await api.put(`/feedback/${id}/status`, { status: newStatus });
-            
-            // Update local state immediately
             setFeedback(prevFeedback => 
                 prevFeedback.map(item => 
                     item.id === id ? { ...item, status: newStatus } : item
                 )
             );
-            
-            // Update stats
-            const oldItem = feedback.find(f => f.id === id);
-            if (oldItem) {
-                setStats(prev => ({
-                    ...prev,
-                    [oldItem.status]: prev[oldItem.status] - 1,
-                    [newStatus]: prev[newStatus] + 1
-                }));
-            }
-            
             toast.success(`Status updated to ${newStatus}`);
+            fetchFeedback();
         } catch (error) {
-            console.error('Status update error:', error);
             toast.error('Failed to update status');
         }
     };
@@ -130,23 +107,10 @@ const AdminFeedback = () => {
         if (window.confirm('Are you sure you want to delete this feedback?')) {
             try {
                 await api.delete(`/feedback/${id}`);
-                
-                // Remove from local state immediately
-                const deletedItem = feedback.find(f => f.id === id);
                 setFeedback(prevFeedback => prevFeedback.filter(item => item.id !== id));
-                
-                // Update stats
-                if (deletedItem) {
-                    setStats(prev => ({
-                        ...prev,
-                        total: prev.total - 1,
-                        [deletedItem.status]: prev[deletedItem.status] - 1
-                    }));
-                }
-                
                 toast.success('Feedback deleted successfully');
+                fetchFeedback();
             } catch (error) {
-                console.error('Delete error:', error);
                 toast.error('Failed to delete feedback');
             }
         }
@@ -225,20 +189,15 @@ const AdminFeedback = () => {
                 <div className="text-center py-12 bg-white rounded-xl shadow-sm">
                     <div className="text-5xl mb-2">📭</div>
                     <p className="text-gray-500">No feedback found</p>
-                    <p className="text-sm text-gray-400 mt-1">Try changing the filter</p>
                 </div>
             ) : (
                 <div className="space-y-4">
                     {feedback.map(item => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition"
-                        >
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={item.id} className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition">
+                            {/* Header */}
+                            <div className="flex flex-wrap justify-between items-start mb-4 gap-2">
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                         <span className="font-semibold text-gray-800">
                                             {item.user_name || 'Anonymous User'}
                                         </span>
@@ -246,7 +205,7 @@ const AdminFeedback = () => {
                                             {item.user_email || 'No email'}
                                         </span>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         <span className="text-xs px-2 py-1 rounded-full bg-gray-100">
                                             {getCategoryIcon(item.category)} {item.category}
                                         </span>
@@ -260,23 +219,23 @@ const AdminFeedback = () => {
                                 </span>
                             </div>
                             
+                            {/* Subject */}
                             <h3 className="font-semibold text-gray-800 mb-2">{item.subject}</h3>
+                            
+                            {/* Message */}
                             <p className="text-gray-600 mb-4">{item.message}</p>
                             
-                            {/* Admin Reply - Now shows immediately after reply */}
+                            {/* Admin Reply Display */}
                             {item.admin_reply && (
                                 <div className="bg-green-50 rounded-lg p-3 mb-4 border-l-4 border-green-500">
-                                    <p className="text-xs text-green-700 font-medium mb-1">📨 Admin Response:</p>
+                                    <p className="text-xs text-green-700 font-medium mb-1">📨 Your Reply:</p>
                                     <p className="text-sm text-gray-700">{item.admin_reply}</p>
-                                    {item.replied_at && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Replied on: {new Date(item.replied_at).toLocaleString()}
-                                        </p>
-                                    )}
                                 </div>
                             )}
                             
-                            <div className="flex gap-2 pt-3 border-t">
+                            {/* ACTION BUTTONS - INCLUDING REPLY BUTTON */}
+                            <div className="flex flex-wrap gap-2 pt-3 border-t">
+                                {/* REPLY BUTTON - This is what you need! */}
                                 <button
                                     onClick={() => {
                                         setSelected(item);
@@ -285,9 +244,13 @@ const AdminFeedback = () => {
                                     }}
                                     className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition flex items-center gap-1"
                                 >
-                                    <Reply className="w-3 h-3" />
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
                                     {item.admin_reply ? 'Edit Reply' : 'Reply'}
                                 </button>
+                                
+                                {/* Status Dropdown */}
                                 <select
                                     value={item.status}
                                     onChange={(e) => updateStatus(item.id, e.target.value)}
@@ -297,15 +260,16 @@ const AdminFeedback = () => {
                                     <option value="reviewed">👀 Reviewed</option>
                                     <option value="resolved">✅ Resolved</option>
                                 </select>
+                                
+                                {/* Delete Button */}
                                 <button
                                     onClick={() => deleteFeedback(item.id)}
-                                    className="px-4 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition flex items-center gap-1"
+                                    className="px-4 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
                                 >
-                                    <Trash2 className="w-3 h-3" />
-                                    Delete
+                                    🗑️ Delete
                                 </button>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
             )}
@@ -328,18 +292,18 @@ const AdminFeedback = () => {
                             </button>
                         </div>
                         
-                        <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-gray-500 mb-1">From: {selected.user_name || 'Customer'}</p>
-                            <p className="text-sm text-gray-500 mb-2">Subject: {selected.subject}</p>
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                            <p className="text-xs text-gray-500 mb-1">From: {selected.user_name || 'Customer'}</p>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Subject: {selected.subject}</p>
                             <div className="border-t pt-2 mt-2">
-                                <p className="text-sm text-gray-700">{selected.message}</p>
+                                <p className="text-sm text-gray-600">{selected.message}</p>
                             </div>
                         </div>
                         
                         <textarea
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
-                            placeholder="Type your response..."
+                            placeholder="Type your response here..."
                             rows="5"
                             className="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             autoFocus
@@ -356,7 +320,9 @@ const AdminFeedback = () => {
                                 onClick={handleReply} 
                                 className="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
                             >
-                                <Send className="w-4 h-4" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
                                 Send Reply
                             </button>
                         </div>
