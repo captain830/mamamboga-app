@@ -891,6 +891,22 @@ app.get('/api/users/all', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Get single user (admin only)
+app.get('/api/users/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query('SELECT id, name, email, phone, role, is_active, created_at FROM users WHERE id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+});
+
 // Update user (admin only)
 app.put('/api/users/:id', protect, authorize('admin'), async (req, res) => {
   try {
@@ -898,9 +914,16 @@ app.put('/api/users/:id', protect, authorize('admin'), async (req, res) => {
     const { name, email, phone, role } = req.body;
     
     const result = await db.query(
-      'UPDATE users SET name = $1, email = $2, phone = $3, role = $4 WHERE id = $5 RETURNING id, name, email, phone, role',
+      `UPDATE users 
+       SET name = $1, email = $2, phone = $3, role = $4, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $5 
+       RETURNING id, name, email, phone, role, is_active, created_at`,
       [name, email, phone, role, id]
     );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     
     res.json(result.rows[0]);
   } catch (error) {
@@ -914,12 +937,16 @@ app.delete('/api/users/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Delete user's feedback first
+    // First, delete user's feedback
     await db.query('DELETE FROM feedback WHERE user_id = $1', [id]);
     // Delete user's orders
     await db.query('DELETE FROM orders WHERE user_id = $1', [id]);
-    // Delete user
-    await db.query('DELETE FROM users WHERE id = $1', [id]);
+    // Delete the user
+    const result = await db.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -936,9 +963,9 @@ app.delete('/api/users/bulk/customers', protect, authorize('admin'), async (req,
     // Delete orders from customers
     await db.query('DELETE FROM orders WHERE user_id IN (SELECT id FROM users WHERE role = $1)', ['customer']);
     // Delete customers
-    await db.query('DELETE FROM users WHERE role = $1', ['customer']);
+    const result = await db.query('DELETE FROM users WHERE role = $1 RETURNING id', ['customer']);
     
-    res.json({ message: 'All customers deleted successfully' });
+    res.json({ message: `${result.rowCount} customers deleted successfully` });
   } catch (error) {
     console.error('Bulk delete error:', error);
     res.status(500).json({ message: 'Failed to delete customers' });
@@ -949,10 +976,41 @@ app.delete('/api/users/bulk/customers', protect, authorize('admin'), async (req,
 app.post('/api/users/reset-sequence', protect, authorize('admin'), async (req, res) => {
   try {
     await db.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
-    res.json({ message: 'Sequence reset successfully' });
+    res.json({ message: 'User ID sequence reset successfully' });
   } catch (error) {
     console.error('Reset sequence error:', error);
     res.status(500).json({ message: 'Failed to reset sequence' });
+  }
+});
+
+// Create new user (admin only)
+app.post('/api/users', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, phone, password, role = 'customer' } = req.body;
+    
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+    
+    // Check if user exists
+    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await db.query(
+      `INSERT INTO users (name, email, phone, password, role, is_active, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP) 
+       RETURNING id, name, email, phone, role, is_active, created_at`,
+      [name, email, phone, hashedPassword, role, true]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ message: 'Failed to create user' });
   }
 });
 
@@ -963,7 +1021,9 @@ app.put('/api/users/profile', protect, async (req, res) => {
     const { name, phone } = req.body;
     
     const result = await db.query(
-      'UPDATE users SET name = $1, phone = $2 WHERE id = $3 RETURNING id, name, email, phone, role',
+      `UPDATE users SET name = $1, phone = $2, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
+       RETURNING id, name, email, phone, role`,
       [name, phone, userId]
     );
     
@@ -974,15 +1034,27 @@ app.put('/api/users/profile', protect, async (req, res) => {
   }
 });
 
-// Change password
+// Change password (user self)
 app.put('/api/users/change-password', protect, async (req, res) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
     
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+    
     // Get user with password
     const result = await db.query('SELECT password FROM users WHERE id = $1', [userId]);
     const user = result.rows[0];
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     
     // Verify current password
     const isValid = await bcrypt.compare(currentPassword, user.password);
@@ -994,14 +1066,14 @@ app.put('/api/users/change-password', protect, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
     // Update password
-    await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+    await db.query('UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hashedPassword, userId]);
     
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ message: 'Failed to change password' });
   }
-});
+}); 
 
 // ============ ANALYTICS ROUTES ============
 const { getOrderStats } = require('./src/services/analyticsService');
