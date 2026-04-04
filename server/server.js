@@ -9,6 +9,7 @@ const morgan = require('morgan');
 const http = require('http');
 const socketIo = require('socket.io');
 const db = require('./src/config/database');
+const { protect, authorize } = require('./src/middleware/auth'); 
 
 // Load environment variables FIRST
 dotenv.config();
