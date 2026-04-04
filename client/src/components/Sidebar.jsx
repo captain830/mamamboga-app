@@ -5,11 +5,9 @@ import { logout } from '../redux/slices/authSlice'
 import { 
   FiHome, FiPackage, FiShoppingCart, FiMessageSquare, 
   FiUser, FiLogOut, FiBarChart2, FiSettings, FiX,
-  FiTruck, FiCreditCard
+  FiTruck, FiCreditCard, FiUsers  // Add FiUsers here
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
-// Remove ThemeToggle import
-// import ThemeToggle from './ThemeToggle'
 
 const Sidebar = ({ onClose }) => {
   const location = useLocation()
@@ -35,15 +33,14 @@ const Sidebar = ({ onClose }) => {
     { path: '/profile', icon: FiUser, label: 'Profile' },
   ]
 
-// In the adminItems array, add:
-const adminItems = [
-  { path: '/admin', icon: FiBarChart2, label: 'Admin Panel' },
-  { path: '/users', icon: FiUsers, label: 'User Management' },  // Add this
-  { path: '/admin/feedback', icon: FiMessageSquare, label: 'Admin Feedback' },  // Add this
-  { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
-  { path: '/reports', icon: FiBarChart2, label: 'Reports' },
-  { path: '/settings', icon: FiSettings, label: 'Settings' },
-];
+  const adminItems = [
+    { path: '/admin', icon: FiBarChart2, label: 'Admin Panel' },
+    { path: '/users', icon: FiUsers, label: 'User Management' },
+    { path: '/admin/feedback', icon: FiMessageSquare, label: 'Admin Feedback' },
+    { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
+    { path: '/reports', icon: FiBarChart2, label: 'Reports' },
+    { path: '/settings', icon: FiSettings, label: 'Settings' },
+  ]
 
   return (
     <div className="h-full bg-gradient-to-b from-green-700 to-green-900 text-white flex flex-col shadow-xl">
@@ -137,7 +134,7 @@ const adminItems = [
         )}
       </nav>
 
-      {/* Footer - REMOVED ThemeToggle */}
+      {/* Footer */}
       <div className="p-4 border-t border-white/20">
         <button
           onClick={handleLogout}
