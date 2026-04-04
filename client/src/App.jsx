@@ -19,14 +19,14 @@ import Profile from './pages/Profile'
 import AdminPanel from './pages/AdminPanel'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import Analytics from './pages/Analytics'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Feedback from './pages/Feedback'
 import AdminFeedback from './pages/AdminFeedback'
 import AdminOrders from './pages/AdminOrders';
 import { initializeSocket } from './services/socket';
 import ThemeToggle from './components/ThemeToggle'
-import OfflineHandler from './components/OfflineHandler'  // Add at top
-
+import OfflineHandler from './components/OfflineHandler'
 
 const queryClient = new QueryClient()
 
@@ -63,14 +63,13 @@ function App() {
           }}
         />
         
-        {/* ThemeToggle - Place OUTSIDE Routes */}
         <ThemeToggle />
         <OfflineHandler />
+        
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-          {/* ProtectedRoute now handles Layout internally */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
