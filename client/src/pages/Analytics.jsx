@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 const Analytics = () => {
   const { token, user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('weekly'); // daily, weekly, monthly, yearly
+  const [period, setPeriod] = useState('weekly');
   const [showCharts, setShowCharts] = useState(true);
   const [analytics, setAnalytics] = useState({
     summary: {
@@ -46,22 +46,18 @@ const Analytics = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      // Fetch orders
       const ordersRes = await api.get('/orders/all');
       const orders = ordersRes.data || [];
       
-      // Fetch products
       const productsRes = await api.get('/products');
       const products = productsRes.data || [];
       
-      // Calculate comprehensive analytics
       const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
       const totalOrders = orders.length;
       const uniqueCustomers = [...new Set(orders.map(o => o.user_id))];
       const totalCustomers = uniqueCustomers.length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
-      // Calculate growth rate (compare last 30 days vs previous 30 days)
       const now = new Date();
       const last30Days = orders.filter(o => new Date(o.created_at) > new Date(now.setDate(now.getDate() - 30)));
       const previous30Days = orders.filter(o => {
@@ -72,18 +68,12 @@ const Analytics = () => {
       const previousRevenue = previous30Days.reduce((sum, o) => sum + (o.total_amount || 0), 0);
       const growthRate = previousRevenue > 0 ? ((lastRevenue - previousRevenue) / previousRevenue) * 100 : 0;
       
-      // Calculate conversion rate (orders per customer)
       const conversionRate = totalCustomers > 0 ? (totalOrders / totalCustomers) * 100 : 0;
-      
-      // Calculate refund/cancellation rate
       const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
       const refundRate = totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0;
-      
-      // Calculate customer retention (customers who ordered more than once)
       const repeatCustomers = uniqueCustomers.filter(id => orders.filter(o => o.user_id === id).length > 1);
       const customerRetention = totalCustomers > 0 ? (repeatCustomers.length / totalCustomers) * 100 : 0;
       
-      // Top products
       const productSales = {};
       orders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
@@ -104,7 +94,6 @@ const Analytics = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 10);
       
-      // Category breakdown
       const categorySales = {};
       orders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
@@ -124,7 +113,6 @@ const Analytics = () => {
         .map(([name, data]) => ({ name, ...data }))
         .sort((a, b) => b.revenue - a.revenue);
       
-      // Daily stats for last 7 days
       const last7Days = [...Array(7)].map((_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - i);
@@ -141,7 +129,6 @@ const Analytics = () => {
         };
       });
       
-      // Monthly trends
       const monthlyMap = {};
       orders.forEach(order => {
         const date = new Date(order.created_at);
@@ -158,7 +145,6 @@ const Analytics = () => {
         .sort((a, b) => a.key.localeCompare(b.key))
         .slice(-12);
       
-      // Peak hours (when most orders are placed)
       const hourCounts = Array(24).fill(0);
       orders.forEach(order => {
         const hour = new Date(order.created_at).getHours();
@@ -195,6 +181,47 @@ const Analytics = () => {
       setLoading(false);
     }
   };
+
+  // ========== EXPORT FUNCTION - PLACED CORRECTLY INSIDE COMPONENT ==========
+  const exportAnalyticsReport = () => {
+    try {
+      let csvContent = "Report Type,Value,Date\n";
+      csvContent += `Total Revenue,${analytics.summary.totalRevenue},${new Date().toISOString()}\n`;
+      csvContent += `Total Orders,${analytics.summary.totalOrders},${new Date().toISOString()}\n`;
+      csvContent += `Total Customers,${analytics.summary.totalCustomers},${new Date().toISOString()}\n`;
+      csvContent += `Average Order Value,${analytics.summary.averageOrderValue},${new Date().toISOString()}\n`;
+      csvContent += `Conversion Rate,${analytics.summary.conversionRate}%,${new Date().toISOString()}\n`;
+      csvContent += `Customer Retention,${analytics.customerRetention}%,${new Date().toISOString()}\n`;
+      csvContent += `Growth Rate,${analytics.summary.growthRate}%,${new Date().toISOString()}\n`;
+      csvContent += `Refund Rate,${analytics.refundRate}%,${new Date().toISOString()}\n\n`;
+      
+      csvContent += "Top Products\n";
+      csvContent += "Product Name,Quantity Sold,Revenue,Orders\n";
+      analytics.topProducts.forEach(p => {
+        csvContent += `"${p.name}",${p.quantity},${p.revenue},${p.orders}\n`;
+      });
+      
+      csvContent += "\nDaily Sales\n";
+      csvContent += "Date,Orders,Revenue\n";
+      analytics.dailyStats.forEach(d => {
+        csvContent += `${d.date},${d.orders},${d.revenue}\n`;
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mamamboga_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success('Analytics report exported!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export report');
+    }
+  };
+  // ========== END OF EXPORT FUNCTION ==========
 
   if (user?.role !== 'admin') {
     return (
@@ -422,7 +449,10 @@ const Analytics = () => {
 
       {/* Export Button */}
       <div className="flex justify-end">
-        <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition">
+        <button 
+          onClick={exportAnalyticsReport}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition"
+        >
           <Download size={18} />
           Export Full Report
         </button>

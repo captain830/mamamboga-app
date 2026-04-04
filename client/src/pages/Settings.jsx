@@ -1,22 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Settings as SettingsIcon, User, Bell, Shield, Palette, Globe, 
-  Mail, CreditCard, Truck, Package, Database, Download, Upload,
-  RefreshCw, Save, Lock, Eye, EyeOff, Trash2, AlertTriangle,
-  Moon, Sun, Monitor, Phone, MapPin, Clock, DollarSign,
-  Percent, Tag, Users, FileText, Printer, QrCode, Share2,
-  HelpCircle, Info, ChevronRight, ToggleLeft, ToggleRight
-} from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api from '../services/api';  // Add this line
 
 const Settings = () => {
-  const { user, token } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('general');
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // General Settings
   const [generalSettings, setGeneralSettings] = useState({
@@ -25,18 +17,43 @@ const Settings = () => {
     storePhone: '+254700000000',
     storeAddress: 'Nairobi, Kenya',
     currency: 'KES',
-    timezone: 'Africa/Nairobi',
-    dateFormat: 'DD/MM/YYYY',
   });
+
+  // Add this state for API-dependent settings
+const [apiSettings, setApiSettings] = useState({
+  siteUrl: '',
+  apiEndpoint: '',
+  maintenanceMode: false,
+  debugMode: false,
+});
+
+// Add this function to load settings from server (optional)
+const loadServerSettings = async () => {
+  try {
+    const response = await api.get('/settings');
+    if (response.data) {
+      setApiSettings(response.data);
+    }
+  } catch (error) {
+    console.log('Server settings not available yet');
+  }
+};
+
+// Add this function to save to server (optional)
+const saveServerSettings = async () => {
+  try {
+    await api.post('/settings', apiSettings);
+    toast.success('Server settings saved!');
+  } catch (error) {
+    console.log('Server save not available');
+  }
+};
   
   // Appearance Settings
   const [appearance, setAppearance] = useState({
     theme: 'light',
     primaryColor: '#2e7d32',
-    fontSize: 'medium',
     animations: true,
-    compactMode: false,
-    sidebarCollapsed: false,
   });
   
   // Notification Settings
@@ -45,20 +62,6 @@ const Settings = () => {
     orderAlerts: true,
     feedbackAlerts: true,
     lowStockAlerts: true,
-    promotionalEmails: false,
-    smsAlerts: false,
-    pushNotifications: true,
-  });
-  
-  // Payment Settings
-  const [paymentSettings, setPaymentSettings] = useState({
-    mpesaEnabled: true,
-    cashOnDelivery: true,
-    cardPayments: false,
-    paymentGateway: 'mpesa',
-    mpesaShortcode: '174379',
-    mpesaConsumerKey: '',
-    mpesaConsumerSecret: '',
   });
   
   // Delivery Settings
@@ -66,60 +69,21 @@ const Settings = () => {
     deliveryFee: 100,
     freeDeliveryThreshold: 1000,
     estimatedDeliveryTime: '30-45',
-    maxDeliveryDistance: 10,
     allowPickup: true,
-    deliveryHours: '08:00-20:00',
   });
-  
-  // Product Settings
-  const [productSettings, setProductSettings] = useState({
-    lowStockThreshold: 10,
-    enableBackorders: false,
-    autoApproveReviews: true,
-    showOutOfStock: true,
-    defaultSortBy: 'name',
-    itemsPerPage: 12,
-  });
-  
-  // Security Settings
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorAuth: false,
-    sessionTimeout: 60,
-    maxLoginAttempts: 5,
-    passwordExpiryDays: 90,
-    ipWhitelist: [],
-  });
-  
-  // Data Management
-  const [backupInfo, setBackupInfo] = useState({
-    lastBackup: '2024-01-01 00:00:00',
-    backupSize: '0 MB',
-    autoBackup: true,
-    backupFrequency: 'daily',
-  });
-  
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
 
   const tabs = [
-    { id: 'general', label: 'General', icon: SettingsIcon, color: 'bg-gray-500' },
-    { id: 'appearance', label: 'Appearance', icon: Palette, color: 'bg-purple-500' },
-    { id: 'notifications', label: 'Notifications', icon: Bell, color: 'bg-blue-500' },
-    { id: 'payment', label: 'Payment', icon: CreditCard, color: 'bg-green-500' },
-    { id: 'delivery', label: 'Delivery', icon: Truck, color: 'bg-orange-500' },
-    { id: 'products', label: 'Products', icon: Package, color: 'bg-teal-500' },
-    { id: 'security', label: 'Security', icon: Shield, color: 'bg-red-500' },
-    { id: 'data', label: 'Data', icon: Database, color: 'bg-indigo-500' },
+    { id: 'general', label: 'General', icon: '⚙️' },
+    { id: 'appearance', label: 'Appearance', icon: '🎨' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'delivery', label: 'Delivery', icon: '🚚' },
   ];
 
   useEffect(() => {
     loadSettings();
   }, []);
 
-  const loadSettings = async () => {
-    setLoading(true);
+  const loadSettings = () => {
     try {
       const savedSettings = localStorage.getItem('appSettings');
       if (savedSettings) {
@@ -127,15 +91,18 @@ const Settings = () => {
         setGeneralSettings(settings.general || generalSettings);
         setAppearance(settings.appearance || appearance);
         setNotifications(settings.notifications || notifications);
-        setPaymentSettings(settings.payment || paymentSettings);
         setDeliverySettings(settings.delivery || deliverySettings);
-        setProductSettings(settings.products || productSettings);
-        setSecuritySettings(settings.security || securitySettings);
+      }
+      // Load theme
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        setAppearance(prev => ({ ...prev, theme: savedTheme }));
+        if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -146,20 +113,18 @@ const Settings = () => {
         general: generalSettings,
         appearance,
         notifications,
-        payment: paymentSettings,
         delivery: deliverySettings,
-        products: productSettings,
-        security: securitySettings,
-        backup: backupInfo,
       };
       
       localStorage.setItem('appSettings', JSON.stringify(allSettings));
       
-      // Apply theme immediately
+      // Apply theme
       if (appearance.theme === 'dark') {
         document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
       } else {
         document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
       }
       
       toast.success('Settings saved successfully!');
@@ -170,23 +135,23 @@ const Settings = () => {
     }
   };
 
-  const exportData = async () => {
+  const exportData = () => {
     try {
       const data = {
         settings: localStorage.getItem('appSettings'),
+        theme: localStorage.getItem('theme'),
         exportDate: new Date().toISOString(),
-        version: '1.0.0',
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mamamboga_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `mamamboga_settings_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Data exported successfully!');
+      toast.success('Settings exported!');
     } catch (error) {
-      toast.error('Failed to export data');
+      toast.error('Export failed');
     }
   };
 
@@ -200,7 +165,10 @@ const Settings = () => {
         const data = JSON.parse(e.target.result);
         if (data.settings) {
           localStorage.setItem('appSettings', data.settings);
-          toast.success('Settings imported successfully! Please refresh the page.');
+          if (data.theme) {
+            localStorage.setItem('theme', data.theme);
+          }
+          toast.success('Settings imported! Refreshing...');
           setTimeout(() => window.location.reload(), 1500);
         }
       } catch (error) {
@@ -210,9 +178,17 @@ const Settings = () => {
     reader.readAsText(file);
   };
 
+  const resetToDefault = () => {
+    localStorage.removeItem('appSettings');
+    localStorage.setItem('theme', 'light');
+    document.documentElement.classList.remove('dark');
+    toast.success('Reset to default! Refreshing...');
+    setTimeout(() => window.location.reload(), 1500);
+  };
+
   const clearAllData = () => {
     localStorage.clear();
-    toast.success('All data cleared!');
+    toast.success('All data cleared! Refreshing...');
     setTimeout(() => window.location.reload(), 1500);
   };
 
@@ -220,7 +196,7 @@ const Settings = () => {
     return (
       <div className="text-center py-12">
         <div className="bg-red-50 inline-block p-4 rounded-full mb-4">
-          <Shield className="w-12 h-12 text-red-500" />
+          <span className="text-4xl">🔒</span>
         </div>
         <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
         <p className="text-gray-600 mt-2">Admin access required to modify settings.</p>
@@ -228,11 +204,11 @@ const Settings = () => {
     );
   }
 
-  const SettingSection = ({ title, icon: Icon, children }) => (
+  const SettingSection = ({ title, icon, children }) => (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
         <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5 text-green-600" />
+          <span className="text-xl">{icon}</span>
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
         </div>
       </div>
@@ -269,16 +245,13 @@ const Settings = () => {
           <h1 className="text-3xl font-bold text-gray-900">⚙️ System Settings</h1>
           <p className="text-gray-500 mt-1">Configure and manage your application preferences</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-          >
-            <Save size={18} />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+        <button
+          onClick={saveSettings}
+          disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+        >
+          💾 {saving ? 'Saving...' : 'Save Changes'}
+        </button>
       </div>
 
       {/* Tabs */}
@@ -293,7 +266,7 @@ const Settings = () => {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <tab.icon size={16} />
+            <span>{tab.icon}</span>
             {tab.label}
           </button>
         ))}
@@ -302,7 +275,7 @@ const Settings = () => {
       <div className="space-y-6">
         {/* General Settings */}
         {activeTab === 'general' && (
-          <SettingSection title="General Settings" icon={SettingsIcon}>
+          <SettingSection title="General Settings" icon="⚙️">
             <SettingRow label="Store Name" description="Your business name displayed throughout the app">
               <input
                 type="text"
@@ -327,34 +300,15 @@ const Settings = () => {
                 className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
               />
             </SettingRow>
-            <SettingRow label="Store Address" description="Physical location">
-              <input
-                type="text"
-                value={generalSettings.storeAddress}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, storeAddress: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
-              />
-            </SettingRow>
             <SettingRow label="Currency" description="Default currency for transactions">
               <select
                 value={generalSettings.currency}
                 onChange={(e) => setGeneralSettings({ ...generalSettings, currency: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
+                className="px-3 py-2 border rounded-lg w-32 focus:ring-2 focus:ring-green-500"
               >
-                <option value="KES">Kenyan Shilling (KES)</option>
-                <option value="USD">US Dollar (USD)</option>
-                <option value="EUR">Euro (EUR)</option>
-              </select>
-            </SettingRow>
-            <SettingRow label="Timezone" description="Your local timezone">
-              <select
-                value={generalSettings.timezone}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, timezone: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-green-500"
-              >
-                <option value="Africa/Nairobi">East Africa Time (EAT)</option>
-                <option value="Africa/Johannesburg">South Africa Standard Time</option>
-                <option value="Africa/Cairo">Eastern European Time</option>
+                <option value="KES">KES</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
               </select>
             </SettingRow>
           </SettingSection>
@@ -362,54 +316,43 @@ const Settings = () => {
 
         {/* Appearance Settings */}
         {activeTab === 'appearance' && (
-          <SettingSection title="Appearance" icon={Palette}>
+          <SettingSection title="Appearance" icon="🎨">
             <SettingRow label="Theme Mode" description="Choose light or dark theme">
               <div className="flex gap-2">
                 <button
                   onClick={() => setAppearance({ ...appearance, theme: 'light' })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${appearance.theme === 'light' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
                 >
-                  <Sun size={16} /> Light
+                  ☀️ Light
                 </button>
                 <button
                   onClick={() => setAppearance({ ...appearance, theme: 'dark' })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${appearance.theme === 'dark' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
                 >
-                  <Moon size={16} /> Dark
+                  🌙 Dark
                 </button>
               </div>
             </SettingRow>
             <SettingRow label="Primary Color" description="Main brand color">
-              <input
-                type="color"
-                value={appearance.primaryColor}
-                onChange={(e) => setAppearance({ ...appearance, primaryColor: e.target.value })}
-                className="w-16 h-10 rounded border cursor-pointer"
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={appearance.primaryColor}
+                  onChange={(e) => setAppearance({ ...appearance, primaryColor: e.target.value })}
+                  className="w-12 h-10 rounded border cursor-pointer"
+                />
+                <span className="text-sm text-gray-500">{appearance.primaryColor}</span>
+              </div>
             </SettingRow>
-            <SettingRow label="Font Size" description="Text size throughout the app">
-              <select
-                value={appearance.fontSize}
-                onChange={(e) => setAppearance({ ...appearance, fontSize: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-48"
-              >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
-            </SettingRow>
-            <SettingRow label="Animations" description="Enable smooth transitions and animations">
+            <SettingRow label="Animations" description="Enable smooth transitions">
               <ToggleSwitch enabled={appearance.animations} onChange={(val) => setAppearance({ ...appearance, animations: val })} />
-            </SettingRow>
-            <SettingRow label="Compact Mode" description="Reduce spacing for more content">
-              <ToggleSwitch enabled={appearance.compactMode} onChange={(val) => setAppearance({ ...appearance, compactMode: val })} />
             </SettingRow>
           </SettingSection>
         )}
 
         {/* Notification Settings */}
         {activeTab === 'notifications' && (
-          <SettingSection title="Notifications" icon={Bell}>
+          <SettingSection title="Notifications" icon="🔔">
             <SettingRow label="Email Notifications" description="Receive updates via email">
               <ToggleSwitch enabled={notifications.emailNotifications} onChange={(val) => setNotifications({ ...notifications, emailNotifications: val })} />
             </SettingRow>
@@ -422,39 +365,12 @@ const Settings = () => {
             <SettingRow label="Low Stock Alerts" description="Alert when products are running low">
               <ToggleSwitch enabled={notifications.lowStockAlerts} onChange={(val) => setNotifications({ ...notifications, lowStockAlerts: val })} />
             </SettingRow>
-            <SettingRow label="Push Notifications" description="Browser notifications">
-              <ToggleSwitch enabled={notifications.pushNotifications} onChange={(val) => setNotifications({ ...notifications, pushNotifications: val })} />
-            </SettingRow>
-          </SettingSection>
-        )}
-
-        {/* Payment Settings */}
-        {activeTab === 'payment' && (
-          <SettingSection title="Payment Settings" icon={CreditCard}>
-            <SettingRow label="M-Pesa Payment" description="Enable M-Pesa payments">
-              <ToggleSwitch enabled={paymentSettings.mpesaEnabled} onChange={(val) => setPaymentSettings({ ...paymentSettings, mpesaEnabled: val })} />
-            </SettingRow>
-            <SettingRow label="Cash on Delivery" description="Allow cash payment on delivery">
-              <ToggleSwitch enabled={paymentSettings.cashOnDelivery} onChange={(val) => setPaymentSettings({ ...paymentSettings, cashOnDelivery: val })} />
-            </SettingRow>
-            <SettingRow label="Card Payments" description="Accept credit/debit cards">
-              <ToggleSwitch enabled={paymentSettings.cardPayments} onChange={(val) => setPaymentSettings({ ...paymentSettings, cardPayments: val })} />
-            </SettingRow>
-            <SettingRow label="M-Pesa Shortcode" description="Paybill/Till number">
-              <input
-                type="text"
-                value={paymentSettings.mpesaShortcode}
-                onChange={(e) => setPaymentSettings({ ...paymentSettings, mpesaShortcode: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-48"
-                placeholder="174379"
-              />
-            </SettingRow>
           </SettingSection>
         )}
 
         {/* Delivery Settings */}
         {activeTab === 'delivery' && (
-          <SettingSection title="Delivery Settings" icon={Truck}>
+          <SettingSection title="Delivery Settings" icon="🚚">
             <SettingRow label="Delivery Fee (KSh)" description="Standard delivery charge">
               <input
                 type="number"
@@ -471,119 +387,63 @@ const Settings = () => {
                 className="px-3 py-2 border rounded-lg w-32"
               />
             </SettingRow>
-            <SettingRow label="Estimated Delivery Time (minutes)" description="Average delivery time">
-              <input
-                type="text"
-                value={deliverySettings.estimatedDeliveryTime}
-                onChange={(e) => setDeliverySettings({ ...deliverySettings, estimatedDeliveryTime: e.target.value })}
-                className="px-3 py-2 border rounded-lg w-32"
-                placeholder="30-45"
-              />
-            </SettingRow>
             <SettingRow label="Allow Store Pickup" description="Customers can pickup orders">
               <ToggleSwitch enabled={deliverySettings.allowPickup} onChange={(val) => setDeliverySettings({ ...deliverySettings, allowPickup: val })} />
             </SettingRow>
           </SettingSection>
         )}
+      </div>
 
-        {/* Product Settings */}
-        {activeTab === 'products' && (
-          <SettingSection title="Product Settings" icon={Package}>
-            <SettingRow label="Low Stock Threshold" description="Alert when stock falls below this number">
-              <input
-                type="number"
-                value={productSettings.lowStockThreshold}
-                onChange={(e) => setProductSettings({ ...productSettings, lowStockThreshold: parseInt(e.target.value) })}
-                className="px-3 py-2 border rounded-lg w-24"
-              />
-            </SettingRow>
-            <SettingRow label="Enable Backorders" description="Allow ordering out-of-stock items">
-              <ToggleSwitch enabled={productSettings.enableBackorders} onChange={(val) => setProductSettings({ ...productSettings, enableBackorders: val })} />
-            </SettingRow>
-            <SettingRow label="Auto-approve Reviews" description="Customer reviews appear automatically">
-              <ToggleSwitch enabled={productSettings.autoApproveReviews} onChange={(val) => setProductSettings({ ...productSettings, autoApproveReviews: val })} />
-            </SettingRow>
-            <SettingRow label="Items Per Page" description="Products shown per page">
-              <select
-                value={productSettings.itemsPerPage}
-                onChange={(e) => setProductSettings({ ...productSettings, itemsPerPage: parseInt(e.target.value) })}
-                className="px-3 py-2 border rounded-lg w-32"
-              >
-                <option value={12}>12</option>
-                <option value={24}>24</option>
-                <option value={48}>48</option>
-                <option value={96}>96</option>
-              </select>
-            </SettingRow>
-          </SettingSection>
-        )}
-
-        {/* Security Settings */}
-        {activeTab === 'security' && (
-          <SettingSection title="Security Settings" icon={Shield}>
-            <SettingRow label="Two-Factor Authentication" description="Extra security for admin accounts">
-              <ToggleSwitch enabled={securitySettings.twoFactorAuth} onChange={(val) => setSecuritySettings({ ...securitySettings, twoFactorAuth: val })} />
-            </SettingRow>
-            <SettingRow label="Session Timeout (minutes)" description="Auto logout after inactivity">
-              <input
-                type="number"
-                value={securitySettings.sessionTimeout}
-                onChange={(e) => setSecuritySettings({ ...securitySettings, sessionTimeout: parseInt(e.target.value) })}
-                className="px-3 py-2 border rounded-lg w-24"
-              />
-            </SettingRow>
-            <SettingRow label="Max Login Attempts" description="Failed attempts before lockout">
-              <input
-                type="number"
-                value={securitySettings.maxLoginAttempts}
-                onChange={(e) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) })}
-                className="px-3 py-2 border rounded-lg w-24"
-              />
-            </SettingRow>
-            <SettingRow label="Change Password" description="Update your account password">
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Change Password
-              </button>
-            </SettingRow>
-          </SettingSection>
-        )}
-
-        {/* Data Management */}
-        {activeTab === 'data' && (
-          <SettingSection title="Data Management" icon={Database}>
-            <SettingRow label="Export Data" description="Download all settings and configurations">
-              <button
-                onClick={exportData}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <Download size={16} /> Export Backup
-              </button>
-            </SettingRow>
-            <SettingRow label="Import Data" description="Restore from backup file">
-              <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                <Upload size={16} /> Import Backup
-                <input type="file" accept=".json" onChange={importData} className="hidden" />
-              </label>
-            </SettingRow>
-            <SettingRow label="Last Backup" description={backupInfo.lastBackup}>
-              <span className="text-sm text-gray-500">{backupInfo.lastBackup}</span>
-            </SettingRow>
-            <SettingRow label="Auto Backup" description="Automatically backup settings daily">
-              <ToggleSwitch enabled={backupInfo.autoBackup} onChange={(val) => setBackupInfo({ ...backupInfo, autoBackup: val })} />
-            </SettingRow>
-            <SettingRow label="Clear All Data" description="⚠️ This action cannot be undone">
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                <Trash2 size={16} /> Clear All Data
-              </button>
-            </SettingRow>
-          </SettingSection>
-        )}
+      {/* Data Management Section */}
+      <div className="mt-8 bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💾</span>
+            <h3 className="text-lg font-semibold text-gray-800">Data Management</h3>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
+            <div>
+              <p className="font-medium text-gray-700">Export Settings</p>
+              <p className="text-xs text-gray-400">Download all settings as backup</p>
+            </div>
+            <button onClick={exportData} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              📥 Export Backup
+            </button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
+            <div>
+              <p className="font-medium text-gray-700">Import Settings</p>
+              <p className="text-xs text-gray-400">Restore from backup file</p>
+            </div>
+            <label className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
+              📤 Import Backup
+              <input type="file" accept=".json" onChange={importData} className="hidden" />
+            </label>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
+            <div>
+              <p className="font-medium text-gray-700">Reset to Default</p>
+              <p className="text-xs text-gray-400">Restore all factory settings</p>
+            </div>
+            <button onClick={resetToDefault} className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+              🔄 Reset Defaults
+            </button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3">
+            <div>
+              <p className="font-medium text-red-600">Clear All Data</p>
+              <p className="text-xs text-gray-400">⚠️ This action cannot be undone</p>
+            </div>
+            <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+              🗑️ Clear All
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Clear Data Confirmation Modal */}
@@ -598,7 +458,7 @@ const Settings = () => {
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                  <span className="text-2xl">⚠️</span>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Confirm Action</h3>
               </div>
