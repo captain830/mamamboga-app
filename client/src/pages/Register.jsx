@@ -5,6 +5,7 @@ import axios from 'axios'
 import { setCredentials } from '../redux/slices/authSlice'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
+import SMSVerification from '../components/SMSVerification'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
 
@@ -17,6 +18,9 @@ const Register = () => {
     confirmPassword: '',
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [showSMSVerification, setShowSMSVerification] = useState(false)
+  const [registeredPhone, setRegisteredPhone] = useState('')
+  const [tempUserId, setTempUserId] = useState(null)
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -28,22 +32,50 @@ const Register = () => {
       return
     }
 
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+
     setIsLoading(true)
 
     try {
       const { confirmPassword, ...userData } = formData
       const response = await axios.post(`${API_URL}/auth/register`, userData)
-      dispatch(setCredentials({
-        user: response.data.user,
-        token: response.data.token,
-      }))
-      toast.success('Account created successfully! Welcome to Mama Mboga!')
-      navigate('/')
+      
+      // Store temp user info for SMS verification
+      setRegisteredPhone(formData.phone)
+      setTempUserId(response.data.user.id)
+      
+      // Show SMS verification instead of navigating away
+      setShowSMSVerification(true)
+      toast.success('Registration successful! Please verify your phone number.')
+      
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // If showing SMS verification
+  if (showSMSVerification) {
+    return (
+      <SMSVerification 
+        phone={registeredPhone}
+        userId={tempUserId}
+        onVerified={() => {
+          setShowSMSVerification(false)
+          toast.success('Phone verified! Your account is pending admin approval.', {
+            duration: 5000
+          })
+          navigate('/login')
+        }}
+        onBack={() => {
+          setShowSMSVerification(false)
+        }}
+      />
+    )
   }
 
   return (
@@ -137,6 +169,7 @@ const Register = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none"
                   placeholder="0712345678"
                 />
+                <p className="text-xs text-gray-500 mt-1">We'll send a verification code to this number</p>
               </div>
 
               <div>
@@ -149,6 +182,7 @@ const Register = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-transparent transition-all outline-none"
                   placeholder="••••••••"
                 />
+                <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
               </div>
 
               <div>
@@ -190,6 +224,13 @@ const Register = () => {
                 <Link to="/login" className="font-semibold hover:underline transition-colors" style={{ color: 'var(--primary)' }}>
                   Sign In
                 </Link>
+              </p>
+            </div>
+
+            {/* Info note about verification */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-600 text-center">
+                🔒 Accounts require phone verification and admin approval for security.
               </p>
             </div>
           </div>

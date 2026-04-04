@@ -121,14 +121,94 @@ const sendNotification = (userId, notification) => {
 // In-memory storage for demo
 let users = [];
 let products = [
-  { id: 1, name: 'Fresh Sukuma Wiki', category: 'Vegetables', price: 50, stock: 100, description: 'Fresh organic kale leaves', image_url: null, featured: true },
-  { id: 2, name: 'Ripe Tomatoes', category: 'Vegetables', price: 80, stock: 150, description: 'Juicy ripe tomatoes', image_url: null, featured: true },
-  { id: 3, name: 'Red Onions', category: 'Vegetables', price: 60, stock: 120, description: 'Freshly harvested red onions', image_url: null, featured: false },
-  { id: 4, name: 'Irish Potatoes', category: 'Vegetables', price: 100, stock: 200, description: 'High-quality potatoes', image_url: null, featured: true },
-  { id: 5, name: 'Maize Flour', category: 'Cereals', price: 120, stock: 50, description: 'Premium quality maize flour, 2kg', image_url: null, featured: true },
-  { id: 6, name: 'Long Grain Rice', category: 'Cereals', price: 150, stock: 40, description: 'Aromatic long grain rice, 1kg', image_url: null, featured: true },
-  { id: 7, name: 'Fresh Cabbage', category: 'Vegetables', price: 45, stock: 80, description: 'Crisp fresh cabbage', image_url: null, featured: false },
-  { id: 8, name: 'Dried Beans', category: 'Cereals', price: 180, stock: 60, description: 'Premium quality beans, 1kg', image_url: null, featured: false }
+  { 
+    id: 1, 
+    name: 'Fresh Sukuma Wiki', 
+    category: 'Vegetables', 
+    price: 50, 
+    stock: 100, 
+    description: 'Fresh organic kale leaves', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/sukuma_wiki',
+    image_public_id: null, 
+    featured: true 
+  },
+  { 
+    id: 2, 
+    name: 'Ripe Tomatoes', 
+    category: 'Vegetables', 
+    price: 80, 
+    stock: 150, 
+    description: 'Juicy ripe tomatoes', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/tomatoes',
+    image_public_id: null, 
+    featured: true 
+  },
+  { 
+    id: 3, 
+    name: 'Red Onions', 
+    category: 'Vegetables', 
+    price: 60, 
+    stock: 120, 
+    description: 'Freshly harvested red onions', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/onions',
+    image_public_id: null, 
+    featured: false 
+  },
+  { 
+    id: 4, 
+    name: 'Irish Potatoes', 
+    category: 'Vegetables', 
+    price: 100, 
+    stock: 200, 
+    description: 'High-quality potatoes', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/potatoes',
+    image_public_id: null, 
+    featured: true 
+  },
+  { 
+    id: 5, 
+    name: 'Maize Flour', 
+    category: 'Cereals', 
+    price: 120, 
+    stock: 50, 
+    description: 'Premium quality maize flour, 2kg', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/maize_flour',
+    image_public_id: null, 
+    featured: true 
+  },
+  { 
+    id: 6, 
+    name: 'Long Grain Rice', 
+    category: 'Cereals', 
+    price: 150, 
+    stock: 40, 
+    description: 'Aromatic long grain rice, 1kg', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/rice',
+    image_public_id: null, 
+    featured: true 
+  },
+  { 
+    id: 7, 
+    name: 'Fresh Cabbage', 
+    category: 'Vegetables', 
+    price: 45, 
+    stock: 80, 
+    description: 'Crisp fresh cabbage', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/cabbage',
+    image_public_id: null, 
+    featured: false 
+  },
+  { 
+    id: 8, 
+    name: 'Dried Beans', 
+    category: 'Cereals', 
+    price: 180, 
+    stock: 60, 
+    description: 'Premium quality beans, 1kg', 
+    image_url: 'https://res.cloudinary.com/dguy3dpox/image/upload/v1/mamamboga/products/beans',
+    image_public_id: null, 
+    featured: false 
+  }
 ];
 
 // Feedback Routes
@@ -555,13 +635,12 @@ app.get('/health', (req, res) => {
 // ============ AUTH ROUTES ============
 
 // Register - Save to database
-// Generate verification token
-
+// Update registration endpoint
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, phone, password, role = 'customer' } = req.body;
     
-    // Stricter validation
+    // Validation
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -570,14 +649,7 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters' });
     }
     
-    // Check for suspicious patterns
-    const suspiciousDomains = ['tempmail.com', '10minutemail.com', 'guerrillamail.com'];
-    const emailDomain = email.split('@')[1];
-    if (suspiciousDomains.includes(emailDomain)) {
-      return res.status(400).json({ message: 'Please use a valid email address' });
-    }
-    
-    // Check for existing user
+    // Check existing user
     const existingUser = await db.query(
       'SELECT id FROM users WHERE email = $1 OR phone = $2',
       [email, phone]
@@ -588,34 +660,173 @@ app.post('/api/auth/register', async (req, res) => {
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date();
-    verificationExpires.setHours(verificationExpires.getHours() + 24);
-    
-    // Generate unique referral code
-    const referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     
     const result = await db.query(
       `INSERT INTO users (name, email, phone, password, role, is_active, is_verified, 
-        verification_token, verification_expires, referral_code, created_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP) 
-       RETURNING id, name, email, role`,
-      [name, email, phone, hashedPassword, role, true, false, verificationToken, verificationExpires, referralCode]
+        phone_verified, approval_status, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP) 
+       RETURNING id, name, email, phone, role`,
+      [name, email, phone, hashedPassword, role, true, false, false, 'pending']
     );
     
-    // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-    // Send email with verification link (implement this)
+    // Notify admin via WebSocket
+    io.to('admin-room').emit('new-registration', {
+      userId: result.rows[0].id,
+      name: name,
+      email: email,
+      phone: phone,
+      timestamp: new Date().toISOString()
+    });
     
     res.status(201).json({
-      message: 'Registration successful. Please verify your email to continue.',
+      message: 'Registration successful. Awaiting admin approval.',
       user: result.rows[0],
-      requiresVerification: true
+      requiresApproval: true
     });
     
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Registration failed' });
+  }
+});
+
+// Admin approval endpoints
+app.put('/api/admin/approve-user/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+    
+    const result = await db.query(
+      `UPDATE users 
+       SET approval_status = 'approved', 
+           approved_by = $1, 
+           approved_at = CURRENT_TIMESTAMP,
+           is_active = true
+       WHERE id = $2 
+       RETURNING id, name, email`,
+      [adminId, id]
+    );
+    
+    // Notify user via WebSocket if connected
+    sendNotification(parseInt(id), {
+      type: 'account_approved',
+      title: 'Account Approved! 🎉',
+      message: 'Your account has been approved. You can now log in and start shopping!'
+    });
+    
+    res.json({ message: 'User approved successfully', user: result.rows[0] });
+  } catch (error) {
+    console.error('Approval error:', error);
+    res.status(500).json({ message: 'Failed to approve user' });
+  }
+});
+
+app.put('/api/admin/reject-user/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    await db.query(
+      `UPDATE users 
+       SET approval_status = 'rejected', 
+           rejection_reason = $1,
+           is_active = false
+       WHERE id = $2`,
+      [reason || 'No reason provided', id]
+    );
+    
+    res.json({ message: 'User rejected' });
+  } catch (error) {
+    console.error('Rejection error:', error);
+    res.status(500).json({ message: 'Failed to reject user' });
+  }
+});
+
+// Get pending approvals (admin)
+app.get('/api/admin/pending-approvals', protect, authorize('admin'), async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, name, email, phone, created_at 
+       FROM users 
+       WHERE approval_status = 'pending' 
+       ORDER BY created_at ASC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Pending approvals error:', error);
+    res.status(500).json({ message: 'Failed to fetch pending approvals' });
+  }
+});
+
+// ============ SMS VERIFICATION ROUTES ============
+const {
+  sendVerificationSMS,
+  generateVerificationCode,
+  storeVerificationCode,
+  verifyCode,
+  removeVerificationCode
+} = require('./src/services/smsService');
+
+// Request SMS verification
+app.post('/api/auth/send-verification', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number required' });
+    }
+    
+    // Format phone number (Kenyan format)
+    let formattedPhone = phone;
+    if (phone.startsWith('0')) {
+      formattedPhone = '254' + phone.slice(1);
+    } else if (phone.startsWith('+254')) {
+      formattedPhone = phone.slice(1);
+    }
+    
+    // Generate and store code
+    const code = generateVerificationCode();
+    storeVerificationCode(formattedPhone, code);
+    
+    // Send SMS
+    await sendVerificationSMS(formattedPhone, code);
+    
+    res.json({ 
+      success: true, 
+      message: 'Verification code sent to your phone',
+      phone: formattedPhone
+    });
+  } catch (error) {
+    console.error('SMS send error:', error);
+    res.status(500).json({ message: 'Failed to send verification code' });
+  }
+});
+
+// Verify SMS code
+app.post('/api/auth/verify-sms', async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+    
+    let formattedPhone = phone;
+    if (phone.startsWith('0')) {
+      formattedPhone = '254' + phone.slice(1);
+    } else if (phone.startsWith('+254')) {
+      formattedPhone = phone.slice(1);
+    }
+    
+    const isValid = verifyCode(formattedPhone, code);
+    
+    if (!isValid) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
+    }
+    
+    // Remove used code
+    removeVerificationCode(formattedPhone);
+    
+    res.json({ success: true, message: 'Phone verified successfully' });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({ message: 'Verification failed' });
   }
 });
 
@@ -743,7 +954,9 @@ app.get('/api/auth/me', (req, res) => {
 
 // ============ PRODUCT ROUTES ============
 
-// Get all products
+// ============ PRODUCT ROUTES WITH IMAGES ============
+
+// Get all products (with images)
 app.get('/api/products', (req, res) => {
   try {
     const { category, search, featured } = req.query;
@@ -764,13 +977,20 @@ app.get('/api/products', (req, res) => {
       filteredProducts = filteredProducts.filter(p => p.featured);
     }
     
-    res.json(filteredProducts);
+    // Add default image placeholder if no image
+    const productsWithImages = filteredProducts.map(p => ({
+      ...p,
+      image_url: p.image_url || null
+    }));
+    
+    res.json(productsWithImages);
   } catch (error) {
+    console.error('Get products error:', error);
     res.status(500).json({ message: 'Failed to fetch products' });
   }
 });
 
-// Get single product
+// Get single product (with image)
 app.get('/api/products/:id', (req, res) => {
   try {
     const product = products.find(p => p.id === parseInt(req.params.id));
@@ -783,7 +1003,7 @@ app.get('/api/products/:id', (req, res) => {
   }
 });
 
-// Create product (admin only)
+// Create product (admin only) - with image support
 app.post('/api/products', (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -794,7 +1014,7 @@ app.post('/api/products', (req, res) => {
       return res.status(403).json({ message: 'Admin access required' });
     }
     
-    const { name, category, price, stock, description } = req.body;
+    const { name, category, price, stock, description, image_url } = req.body;
     
     if (!name || !category || !price || !stock) {
       return res.status(400).json({ message: 'All fields are required' });
@@ -807,14 +1027,17 @@ app.post('/api/products', (req, res) => {
       price: parseFloat(price),
       stock: parseInt(stock),
       description: description || '',
-      image_url: null,
+      image_url: image_url || null,
+      image_public_id: null,
       featured: false,
       created_at: new Date().toISOString()
     };
     
     products.push(newProduct);
+    console.log('✅ Product created:', newProduct.name);
     res.status(201).json(newProduct);
   } catch (error) {
+    console.error('Create product error:', error);
     res.status(500).json({ message: 'Failed to create product' });
   }
 });
@@ -831,7 +1054,7 @@ app.put('/api/products/:id', (req, res) => {
     }
     
     const productId = parseInt(req.params.id);
-    const { name, category, price, stock, description } = req.body;
+    const { name, category, price, stock, description, image_url } = req.body;
     
     const productIndex = products.findIndex(p => p.id === productId);
     if (productIndex === -1) {
@@ -845,11 +1068,14 @@ app.put('/api/products/:id', (req, res) => {
       price: price ? parseFloat(price) : products[productIndex].price,
       stock: stock ? parseInt(stock) : products[productIndex].stock,
       description: description !== undefined ? description : products[productIndex].description,
+      image_url: image_url || products[productIndex].image_url,
       updated_at: new Date().toISOString()
     };
     
+    console.log('✅ Product updated:', products[productIndex].name);
     res.json(products[productIndex]);
   } catch (error) {
+    console.error('Update product error:', error);
     res.status(500).json({ message: 'Failed to update product' });
   }
 });
@@ -872,12 +1098,103 @@ app.delete('/api/products/:id', (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     
+    const deletedProduct = products[productIndex];
     products.splice(productIndex, 1);
+    
+    console.log('✅ Product deleted:', deletedProduct.name);
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
+    console.error('Delete product error:', error);
     res.status(500).json({ message: 'Failed to delete product' });
   }
 });
+
+// ============ IMAGE UPLOAD ROUTES ============
+const { uploadProduct, uploadProfile, cloudinary } = require('./src/services/uploadService');
+
+// Upload product image (admin only)
+app.post('/api/products/:id/upload-image', 
+  protect, 
+  authorize('admin'), 
+  uploadProduct.single('image'),
+  async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const productIndex = products.findIndex(p => p.id === productId);
+      
+      if (productIndex === -1) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      // Delete old image from Cloudinary if exists
+      if (products[productIndex].image_public_id) {
+        try {
+          await cloudinary.uploader.destroy(products[productIndex].image_public_id);
+        } catch (err) {
+          console.log('Old image deletion failed:', err.message);
+        }
+      }
+      
+      // Update product with new image
+      products[productIndex].image_url = req.file.path;
+      products[productIndex].image_public_id = req.file.filename;
+      
+      console.log(`✅ Image uploaded for product ${products[productIndex].name}`);
+      res.json({ 
+        message: 'Image uploaded successfully', 
+        image_url: req.file.path,
+        product: products[productIndex]
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ message: 'Failed to upload image' });
+    }
+});
+
+// Upload profile picture (user self)
+app.post('/api/users/profile-picture', 
+  protect, 
+  uploadProfile.single('profilePicture'),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Update user with new profile picture
+      const userIndex = users.findIndex(u => u.id === userId);
+      if (userIndex !== -1) {
+        // Delete old profile picture if exists
+        if (users[userIndex].profile_picture_id) {
+          try {
+            await cloudinary.uploader.destroy(users[userIndex].profile_picture_id);
+          } catch (err) {
+            console.log('Old profile deletion failed:', err.message);
+          }
+        }
+        
+        users[userIndex].profile_picture = req.file.path;
+        users[userIndex].profile_picture_id = req.file.filename;
+      }
+      
+      res.json({ 
+        message: 'Profile picture updated', 
+        profile_picture: req.file.path 
+      });
+    } catch (error) {
+      console.error('Profile picture error:', error);
+      res.status(500).json({ message: 'Failed to upload profile picture' });
+    }
+});
+
+// Test Cloudinary connection
+app.get('/api/test-cloudinary', async (req, res) => {
+  try {
+    const result = await cloudinary.api.ping();
+    res.json({ message: 'Cloudinary connected!', status: result });
+  } catch (error) {
+    res.status(500).json({ message: 'Cloudinary connection failed', error: error.message });
+  }
+});
+
 // ============ USER MANAGEMENT ROUTES ============
 
 // Get all users (admin only)
