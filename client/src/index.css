@@ -423,6 +423,19 @@ button[type="submit"]:active:not(:disabled) {
   background-color: #1e293b !important;
   color: #f1f5f9 !important;
 }
+/* Dark mode sidebar styles */
+.dark .sidebar-gradient {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+}
+
+.dark .bg-gradient-to-b.from-green-700.to-green-900 {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+}
+
+/* Light mode sidebar stays green */
+.bg-gradient-to-b.from-green-700.to-green-900 {
+  background: linear-gradient(135deg, #15803d 0%, #14532d 100%) !important;
+}
 /* Badge Styles */
 .badge {
   display: inline-flex;

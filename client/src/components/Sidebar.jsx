@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../redux/slices/authSlice'
 import { 
   FiHome, FiPackage, FiShoppingCart, FiMessageSquare, 
   FiUser, FiLogOut, FiBarChart2, FiSettings, FiX,
-  FiTruck, FiCreditCard, FiUsers  // Add FiUsers here
+  FiTruck, FiCreditCard, FiUsers
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 
@@ -14,6 +14,22 @@ const Sidebar = ({ onClose }) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check dark mode on mount and when it changes
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    }
+    
+    checkDarkMode()
+    
+    // Listen for theme changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    
+    return () => observer.disconnect()
+  }, [])
 
   const handleLogout = () => {
     dispatch(logout())
@@ -42,16 +58,27 @@ const Sidebar = ({ onClose }) => {
     { path: '/settings', icon: FiSettings, label: 'Settings' },
   ]
 
+  // Dynamic classes based on dark mode
+  const sidebarBg = isDarkMode 
+    ? 'bg-gradient-to-b from-gray-800 to-gray-900' 
+    : 'bg-gradient-to-b from-green-700 to-green-900'
+  
+  const activeBg = isDarkMode ? 'bg-gray-700' : 'bg-white/20'
+  const hoverBg = isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white/10'
+  const textColor = isDarkMode ? 'text-gray-200' : 'text-white'
+  const textMuted = isDarkMode ? 'text-gray-400' : 'text-white/70'
+  const borderColor = isDarkMode ? 'border-gray-700' : 'border-white/20'
+
   return (
-    <div className="h-full bg-gradient-to-b from-green-700 to-green-900 text-white flex flex-col shadow-xl">
+    <div className={`h-full ${sidebarBg} ${textColor} flex flex-col shadow-xl transition-all duration-300`}>
       {/* Header */}
-      <div className="p-6 border-b border-white/20">
+      <div className={`p-6 border-b ${borderColor}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <span className="text-3xl">🥬</span>
             <div>
               <h1 className="text-xl font-bold">Mama Mboga</h1>
-              <p className="text-xs text-white/70">Fresh Produce Delivery</p>
+              <p className={`text-xs ${textMuted}`}>Fresh Produce Delivery</p>
             </div>
           </div>
           <button
@@ -64,14 +91,14 @@ const Sidebar = ({ onClose }) => {
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-white/20">
+      <div className={`p-4 border-b ${borderColor}`}>
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
             <FiUser className="w-5 h-5" />
           </div>
           <div>
             <p className="font-semibold text-sm">{user?.name || 'Guest'}</p>
-            <p className="text-xs text-white/70 capitalize">{user?.role || 'customer'}</p>
+            <p className={`text-xs ${textMuted} capitalize`}>{user?.role || 'customer'}</p>
           </div>
         </div>
       </div>
@@ -89,8 +116,8 @@ const Sidebar = ({ onClose }) => {
                 onClick={() => onClose && onClose()}
                 className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    ? `${activeBg} ${textColor}`
+                    : `${textColor}/80 ${hoverBg} hover:${textColor}`
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -106,8 +133,8 @@ const Sidebar = ({ onClose }) => {
         {/* Admin Section */}
         {user?.role === 'admin' && (
           <div className="mt-6">
-            <div className="px-4 mb-2">
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Admin</p>
+            <div className={`px-4 mb-2 text-xs font-semibold ${textMuted} uppercase tracking-wider`}>
+              Admin
             </div>
             <div className="px-4 space-y-1">
               {adminItems.map((item) => {
@@ -120,8 +147,8 @@ const Sidebar = ({ onClose }) => {
                     onClick={() => onClose && onClose()}
                     className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                       isActive
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        ? `${activeBg} ${textColor}`
+                        : `${textColor}/80 ${hoverBg} hover:${textColor}`
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -135,15 +162,15 @@ const Sidebar = ({ onClose }) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/20">
+      <div className={`p-4 border-t ${borderColor}`}>
         <button
           onClick={handleLogout}
-          className="flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200"
+          className={`flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg ${textColor}/80 ${hoverBg} hover:${textColor} transition-all duration-200`}
         >
           <FiLogOut className="w-5 h-5" />
           <span className="text-sm font-medium">Logout</span>
         </button>
-        <p className="text-xs text-white/40 text-center mt-4">
+        <p className={`text-xs ${textMuted} text-center mt-4`}>
           © 2024 Mama Mboga
         </p>
       </div>
