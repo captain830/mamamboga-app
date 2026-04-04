@@ -87,6 +87,7 @@ function App() {
             {user?.role === 'admin' && (
               <>
                 <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/analytics" element={<Analytics />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />
