@@ -20,6 +20,7 @@ import AdminPanel from './pages/AdminPanel'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Analytics from './pages/Analytics'
+import UserManagement from './pages/UserManagement'  // ADD THIS LINE
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Feedback from './pages/Feedback'
 import AdminFeedback from './pages/AdminFeedback'
@@ -86,7 +87,7 @@ function App() {
             {user?.role === 'admin' && (
               <>
                 <Route path="/admin" element={<AdminPanel />} />
-                <Route path="/users" element={<UserManagement />} />  // Add this
+                <Route path="/users" element={<UserManagement />} />  {/* ADD THIS ROUTE */}
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
