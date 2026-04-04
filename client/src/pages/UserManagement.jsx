@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, Search, Filter, Trash2, Edit, UserPlus, 
+import {
+  Users, Search, Filter, Trash2, Edit, UserPlus,
   RefreshCw, Shield, User, Mail, Phone, Calendar,
   AlertTriangle, CheckCircle, XCircle, Download, Upload,
   Database, Hash, ArrowUp, ArrowDown
@@ -84,7 +84,7 @@ const UserManagement = () => {
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    
+
     try {
       await api.delete(`/users/${selectedUser.id}`);
       toast.success(`User ${selectedUser.name} deleted successfully!`);
@@ -150,7 +150,7 @@ const UserManagement = () => {
         new Date(u.created_at).toLocaleDateString()
       ])
     ].map(row => row.join(',')).join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -163,21 +163,21 @@ const UserManagement = () => {
 
   const getFilteredUsers = () => {
     let filtered = [...users];
-    
+
     // Apply search
     if (searchTerm) {
-      filtered = filtered.filter(u => 
+      filtered = filtered.filter(u =>
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.phone?.includes(searchTerm)
       );
     }
-    
+
     // Apply role filter
     if (filterRole !== 'all') {
       filtered = filtered.filter(u => u.role === filterRole);
     }
-    
+
     // Apply sorting
     filtered.sort((a, b) => {
       let aVal = a[sortField];
@@ -188,7 +188,7 @@ const UserManagement = () => {
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-    
+
     return filtered;
   };
 
@@ -347,42 +347,41 @@ const UserManagement = () => {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((userItem) => (
-                  <tr key={userItem.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">#{userItem.id}</td>
+                  // Find the table row and update the className:
+                  <tr key={userItem.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">#{userItem.id}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">{userItem.name}</span>
+                        <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">{userItem.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{userItem.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{userItem.phone || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{userItem.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{userItem.phone || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        userItem.role === 'admin' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${userItem.role === 'admin'
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        }`}>
                         {userItem.role}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        userItem.is_active !== false
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${userItem.is_active !== false
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        }`}>
                         {userItem.is_active !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {new Date(userItem.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(userItem)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded"
                           title="Edit User"
                         >
                           <Edit className="w-4 h-4" />
@@ -393,7 +392,7 @@ const UserManagement = () => {
                               setSelectedUser(userItem);
                               setShowDeleteModal(true);
                             }}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/50 rounded"
                             title="Delete User"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -406,7 +405,7 @@ const UserManagement = () => {
               </tbody>
             </table>
           </div>
-          
+
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -513,7 +512,7 @@ const UserManagement = () => {
                   ✕
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -554,7 +553,7 @@ const UserManagement = () => {
                   </select>
                 </div>
               </div>
-              
+
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowEditModal(false)}

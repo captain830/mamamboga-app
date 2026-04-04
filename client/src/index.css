@@ -492,6 +492,265 @@ button[type="submit"]:active:not(:disabled) {
   animation: fadeIn 0.3s ease;
 }
 
+/* Dark mode table styles */
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+/* Table hover fix - THIS IS THE IMPORTANT PART */
+.dark table tr:hover {
+  background-color: #334155 !important;
+}
+
+.dark table tr:hover td {
+  color: #ffffff !important;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #334155 !important;
+}
+
+/* Table header dark mode */
+.dark thead tr,
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+.dark th {
+  color: #94a3b8 !important;
+  background-color: #0f172a !important;
+}
+
+/* Table border dark mode */
+.dark .border-b,
+.dark .border-t,
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+/* Card dark mode */
+.dark .bg-white.rounded-xl,
+.dark .bg-white.rounded-lg,
+.dark .bg-white.rounded-2xl {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Stats cards dark mode */
+.dark .bg-white.rounded-xl.shadow {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-white.rounded-xl.shadow .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .bg-white.rounded-xl.shadow .text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* Pagination and button dark mode */
+.dark button.bg-gray-100 {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark button.bg-gray-100:hover {
+  background-color: #475569 !important;
+}
+
+/* Modal dark mode */
+.dark .fixed.bg-white {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+/* Input dark mode */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #2e7d32 !important;
+  ring-color: #2e7d32 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+/* ============ ADDITIONAL DARK MODE FIXES ============ */
+
+/* Table row hover - ensures text is readable on hover */
+.dark tbody tr:hover {
+  background-color: #334155 !important;
+}
+
+.dark tbody tr:hover td,
+.dark tbody tr:hover td * {
+  color: #ffffff !important;
+}
+
+.dark tbody tr:hover .text-gray-600,
+.dark tbody tr:hover .text-gray-500,
+.dark tbody tr:hover .text-gray-400 {
+  color: #e2e8f0 !important;
+}
+
+/* Action buttons in dark mode */
+.dark button.p-1.text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.dark button.p-1.text-red-600 {
+  color: #f87171 !important;
+}
+
+.dark button.p-1:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Badge colors in dark mode */
+.dark .bg-purple-100 {
+  background-color: #4c1d95 !important;
+  color: #e9d5ff !important;
+}
+
+.dark .bg-blue-100 {
+  background-color: #1e3a5f !important;
+  color: #93c5fd !important;
+}
+
+.dark .bg-green-100 {
+  background-color: #14532d !important;
+  color: #86efac !important;
+}
+
+.dark .bg-red-100 {
+  background-color: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+.dark .bg-yellow-100 {
+  background-color: #713f12 !important;
+  color: #fde047 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Stats card text in dark mode */
+.dark .bg-white.rounded-xl.shadow .text-2xl {
+  color: #ffffff !important;
+}
+
+.dark .bg-white.rounded-xl.shadow .text-green-600,
+.dark .bg-white.rounded-xl.shadow .text-purple-600,
+.dark .bg-white.rounded-xl.shadow .text-red-600,
+.dark .bg-white.rounded-xl.shadow .text-blue-600,
+.dark .bg-white.rounded-xl.shadow .text-yellow-600 {
+  color: #86efac !important;
+}
+
+/* Select dropdown dark mode */
+.dark select {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark select option {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+/* Modal dark mode improvements */
+.dark .bg-white.rounded-2xl {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-gray-50.rounded-lg {
+  background-color: #0f172a !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+/* Focus ring in dark mode */
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  ring-color: #4ade80 !important;
+  border-color: #4ade80 !important;
+}
+
+/* Sidebar dark mode - ensure consistency */
+.dark .bg-gradient-to-b.from-green-700.to-green-900,
+.dark .sidebar-gradient {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+}
+
+/* Light mode sidebar stays green */
+.bg-gradient-to-b.from-green-700.to-green-900 {
+  background: linear-gradient(135deg, #15803d 0%, #14532d 100%) !important;
+}
+
+/* Button hover transitions */
+button {
+  transition: all 0.2s ease;
+}
+
+/* Scrollbar dark mode */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
 /* Responsive */
 @media (max-width: 768px) {
   .dashboard-header {
