@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import api from '../services/api';  // Add this line
+import api from '../services/api';
 
 const Settings = () => {
   const { user } = useSelector((state) => state.auth);
@@ -19,36 +19,6 @@ const Settings = () => {
     currency: 'KES',
   });
 
-  // Add this state for API-dependent settings
-const [apiSettings, setApiSettings] = useState({
-  siteUrl: '',
-  apiEndpoint: '',
-  maintenanceMode: false,
-  debugMode: false,
-});
-
-// Add this function to load settings from server (optional)
-const loadServerSettings = async () => {
-  try {
-    const response = await api.get('/settings');
-    if (response.data) {
-      setApiSettings(response.data);
-    }
-  } catch (error) {
-    console.log('Server settings not available yet');
-  }
-};
-
-// Add this function to save to server (optional)
-const saveServerSettings = async () => {
-  try {
-    await api.post('/settings', apiSettings);
-    toast.success('Server settings saved!');
-  } catch (error) {
-    console.log('Server save not available');
-  }
-};
-  
   // Appearance Settings
   const [appearance, setAppearance] = useState({
     theme: 'light',
@@ -72,11 +42,13 @@ const saveServerSettings = async () => {
     allowPickup: true,
   });
 
+  // Tabs - Added 'data' tab
   const tabs = [
     { id: 'general', label: 'General', icon: '⚙️' },
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
     { id: 'notifications', label: 'Notifications', icon: '🔔' },
     { id: 'delivery', label: 'Delivery', icon: '🚚' },
+    { id: 'data', label: 'Data Management', icon: '💾' },
   ];
 
   useEffect(() => {
@@ -93,7 +65,6 @@ const saveServerSettings = async () => {
         setNotifications(settings.notifications || notifications);
         setDeliverySettings(settings.delivery || deliverySettings);
       }
-      // Load theme
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme) {
         setAppearance(prev => ({ ...prev, theme: savedTheme }));
@@ -118,7 +89,6 @@ const saveServerSettings = async () => {
       
       localStorage.setItem('appSettings', JSON.stringify(allSettings));
       
-      // Apply theme
       if (appearance.theme === 'dark') {
         document.documentElement.classList.add('dark');
         localStorage.setItem('theme', 'dark');
@@ -320,14 +290,24 @@ const saveServerSettings = async () => {
             <SettingRow label="Theme Mode" description="Choose light or dark theme">
               <div className="flex gap-2">
                 <button
-                  onClick={() => setAppearance({ ...appearance, theme: 'light' })}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${appearance.theme === 'light' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => {
+                    setAppearance({ ...appearance, theme: 'light' });
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('darkMode', 'light');
+                    toast.success('Light mode activated! ☀️');
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${!document.documentElement.classList.contains('dark') ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-white'}`}
                 >
                   ☀️ Light
                 </button>
                 <button
-                  onClick={() => setAppearance({ ...appearance, theme: 'dark' })}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${appearance.theme === 'dark' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  onClick={() => {
+                    setAppearance({ ...appearance, theme: 'dark' });
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('darkMode', 'dark');
+                    toast.success('Dark mode activated! 🌙');
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${document.documentElement.classList.contains('dark') ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-white'}`}
                 >
                   🌙 Dark
                 </button>
@@ -392,58 +372,36 @@ const saveServerSettings = async () => {
             </SettingRow>
           </SettingSection>
         )}
-      </div>
 
-      {/* Data Management Section */}
-      <div className="mt-8 bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💾</span>
-            <h3 className="text-lg font-semibold text-gray-800">Data Management</h3>
-          </div>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
-            <div>
-              <p className="font-medium text-gray-700">Export Settings</p>
-              <p className="text-xs text-gray-400">Download all settings as backup</p>
-            </div>
-            <button onClick={exportData} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              📥 Export Backup
-            </button>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
-            <div>
-              <p className="font-medium text-gray-700">Import Settings</p>
-              <p className="text-xs text-gray-400">Restore from backup file</p>
-            </div>
-            <label className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
-              📤 Import Backup
-              <input type="file" accept=".json" onChange={importData} className="hidden" />
-            </label>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b">
-            <div>
-              <p className="font-medium text-gray-700">Reset to Default</p>
-              <p className="text-xs text-gray-400">Restore all factory settings</p>
-            </div>
-            <button onClick={resetToDefault} className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
-              🔄 Reset Defaults
-            </button>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3">
-            <div>
-              <p className="font-medium text-red-600">Clear All Data</p>
-              <p className="text-xs text-gray-400">⚠️ This action cannot be undone</p>
-            </div>
-            <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-              🗑️ Clear All
-            </button>
-          </div>
-        </div>
+        {/* Data Management Tab */}
+        {activeTab === 'data' && (
+          <SettingSection title="Data Management" icon="💾">
+            <SettingRow label="Export Settings" description="Download all settings as backup">
+              <button onClick={exportData} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                📥 Export Backup
+              </button>
+            </SettingRow>
+            
+            <SettingRow label="Import Settings" description="Restore from backup file">
+              <label className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer">
+                📤 Import Backup
+                <input type="file" accept=".json" onChange={importData} className="hidden" />
+              </label>
+            </SettingRow>
+            
+            <SettingRow label="Reset to Default" description="Restore all factory settings">
+              <button onClick={resetToDefault} className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+                🔄 Reset Defaults
+              </button>
+            </SettingRow>
+            
+            <SettingRow label="Clear All Data" description="⚠️ This action cannot be undone">
+              <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                🗑️ Clear All Data
+              </button>
+            </SettingRow>
+          </SettingSection>
+        )}
       </div>
 
       {/* Clear Data Confirmation Modal */}

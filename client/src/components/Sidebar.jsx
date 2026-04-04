@@ -38,6 +38,7 @@ const Sidebar = ({ onClose }) => {
 // In the adminItems array, add:
 const adminItems = [
   { path: '/admin', icon: FiBarChart2, label: 'Admin Panel' },
+  { path: '/users', icon: FiUsers, label: 'User Management' },  // Add this
   { path: '/admin/feedback', icon: FiMessageSquare, label: 'Admin Feedback' },  // Add this
   { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
   { path: '/reports', icon: FiBarChart2, label: 'Reports' },
