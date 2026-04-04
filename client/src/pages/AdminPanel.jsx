@@ -186,6 +186,10 @@ const AdminPanel = () => {
                 <span>Manage All Orders</span>
                 <FiEye className="text-blue-600" />
               </Link>
+              <Link to="/admin/feedback" className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                <span>Manage Customer Feedback</span>
+                <FiMessageSquare className="text-purple-600" />
+              </Link>
               <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
                 Export Reports
               </button>
@@ -317,11 +321,10 @@ const AdminPanel = () => {
                       <td className="py-3 px-4 text-sm font-medium text-green-600">KSh {product.price}</td>
                       <td className="py-3 px-4 text-sm">{product.stock}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${
-                          product.stock > 10 ? 'bg-green-100 text-green-800' : 
-                          product.stock > 0 ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${product.stock > 10 ? 'bg-green-100 text-green-800' :
+                            product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
                           {product.stock > 10 ? 'In Stock' : product.stock > 0 ? 'Low Stock' : 'Out of Stock'}
                         </span>
                       </td>

@@ -6,7 +6,7 @@ import Header from './Header'
 import MobileNav from './MobileNav'
 import { FiMenu } from 'react-icons/fi'
 import LanguageSwitcher from './LanguageSwitcher'
-import ThemeToggle from './ThemeToggle'
+// ThemeToggle is removed - we'll add it as draggable later
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -108,6 +108,8 @@ const Layout = () => {
           </div>
         )}
       </div>
+
+      {/* REMOVED: ThemeToggle - will be added as draggable component separately */}
     </div>
   )
 }
