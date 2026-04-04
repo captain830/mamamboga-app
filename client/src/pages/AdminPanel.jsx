@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { motion } from 'framer-motion'
-import { FiUsers, FiPackage, FiShoppingCart, FiDollarSign, FiRefreshCw, FiPlus, FiEye, FiEdit, FiTrash2 } from 'react-icons/fi'
+import { FiUsers, FiPackage, FiShoppingCart, FiDollarSign, FiRefreshCw, FiPlus, FiEye, FiEdit, FiTrash2, FiMessageSquare } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 
