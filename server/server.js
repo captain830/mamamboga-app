@@ -10,6 +10,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const db = require('./src/config/database');
 const { protect, authorize } = require('./src/middleware/auth'); 
+const crypto = require('crypto');
 
 // Load environment variables FIRST
 dotenv.config();
@@ -554,94 +555,92 @@ app.get('/health', (req, res) => {
 // ============ AUTH ROUTES ============
 
 // Register - Save to database
+// Generate verification token
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, phone, password, role = 'customer' } = req.body;
     
+    // Stricter validation
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
     
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters' });
     }
     
-    // Check if user exists in DATABASE
-    let existingUser = null;
-    try {
-      const result = await db.query('SELECT * FROM users WHERE email = $1 OR phone = $2', [email, phone]);
-      if (result.rows.length > 0) {
-        existingUser = result.rows[0];
-      }
-    } catch (dbError) {
-      console.log('Database check error:', dbError.message);
+    // Check for suspicious patterns
+    const suspiciousDomains = ['tempmail.com', '10minutemail.com', 'guerrillamail.com'];
+    const emailDomain = email.split('@')[1];
+    if (suspiciousDomains.includes(emailDomain)) {
+      return res.status(400).json({ message: 'Please use a valid email address' });
     }
     
-    // Also check memory
-    if (!existingUser) {
-      existingUser = users.find(u => u.email === email || u.phone === phone);
-    }
+    // Check for existing user
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1 OR phone = $2',
+      [email, phone]
+    );
     
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email or phone' });
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'User already exists' });
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date();
+    verificationExpires.setHours(verificationExpires.getHours() + 24);
     
-    let newUser = null;
+    // Generate unique referral code
+    const referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
     
-    // Try to save to DATABASE first
-    try {
-      const result = await db.query(
-        `INSERT INTO users (name, email, phone, password, role, is_active, created_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP) 
-         RETURNING id, name, email, phone, role, is_active, created_at`,
-        [name, email, phone, hashedPassword, role, true]
-      );
-      newUser = result.rows[0];
-    } catch (dbError) {
-      console.log('Database insert error:', dbError.message);
-    }
-    
-    // Fallback to memory if database fails
-    if (!newUser) {
-      newUser = {
-        id: users.length + 1,
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        role,
-        is_active: true,
-        created_at: new Date().toISOString()
-      };
-      users.push(newUser);
-    }
-    
-    const token = jwt.sign(
-      { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name },
-      process.env.JWT_SECRET || 'your-secret-key-change-this',
-      { expiresIn: '7d' }
+    const result = await db.query(
+      `INSERT INTO users (name, email, phone, password, role, is_active, is_verified, 
+        verification_token, verification_expires, referral_code, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP) 
+       RETURNING id, name, email, role`,
+      [name, email, phone, hashedPassword, role, true, false, verificationToken, verificationExpires, referralCode]
     );
     
-    // Send welcome email
-    try {
-      const { sendWelcomeEmail } = require('./src/services/emailService');
-      sendWelcomeEmail(newUser).catch(err => console.error('Welcome email error:', err.message));
-    } catch (emailError) {
-      console.error('Email error:', emailError.message);
-    }
-    
-    const { password: _, ...userWithoutPassword } = newUser;
+    // Send verification email
+    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    // Send email with verification link (implement this)
     
     res.status(201).json({
-      message: 'User registered successfully',
-      user: userWithoutPassword,
-      token
+      message: 'Registration successful. Please verify your email to continue.',
+      user: result.rows[0],
+      requiresVerification: true
     });
+    
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Registration failed' });
+  }
+});
+
+// Email verification endpoint
+app.get('/api/auth/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    const result = await db.query(
+      `UPDATE users 
+       SET is_verified = true, verified_at = CURRENT_TIMESTAMP, 
+           verification_token = NULL 
+       WHERE verification_token = $1 AND verification_expires > CURRENT_TIMESTAMP
+       RETURNING id, email`,
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
+    }
+    
+    res.json({ message: 'Email verified successfully! You can now log in.' });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({ message: 'Verification failed' });
   }
 });
 
